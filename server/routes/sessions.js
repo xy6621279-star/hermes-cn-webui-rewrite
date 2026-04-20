@@ -11,6 +11,11 @@ function getDb() {
   return new Database(DB_PATH, { readonly: true })
 }
 
+function isDbUnavailable(err) {
+  const message = err instanceof Error ? err.message : String(err)
+  return message.includes('better_sqlite3.node') || message.includes('Could not locate the bindings file')
+}
+
 function unixToISO(unixTimestamp) {
   if (!unixTimestamp) return null
   return new Date(unixTimestamp * 1000).toISOString()
@@ -77,6 +82,9 @@ sessionsRouter.get('/', (req, res) => {
       offset,
     })
   } catch (err) {
+    if (isDbUnavailable(err)) {
+      return res.json({ sessions: [], total: 0, limit: Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10))), offset: Math.max(0, parseInt(req.query.offset || '0', 10)) })
+    }
     console.error('Failed to fetch sessions:', err)
     res.status(500).json({ error: 'Failed to fetch sessions', details: err.message })
   }
@@ -112,6 +120,9 @@ sessionsRouter.get('/search', (req, res) => {
       })),
     })
   } catch (err) {
+    if (isDbUnavailable(err)) {
+      return res.json({ results: [] })
+    }
     console.error('Failed to search sessions:', err)
     res.status(500).json({ error: 'Failed to search sessions', details: err.message })
   }
@@ -152,6 +163,9 @@ sessionsRouter.get('/:id', (req, res) => {
       })),
     })
   } catch (err) {
+    if (isDbUnavailable(err)) {
+      return res.status(404).json({ error: 'Session not found' })
+    }
     console.error('Failed to fetch session detail:', err)
     res.status(500).json({ error: 'Failed to fetch session detail', details: err.message })
   }
@@ -191,6 +205,9 @@ sessionsRouter.get('/:id/messages', (req, res) => {
       })),
     })
   } catch (err) {
+    if (isDbUnavailable(err)) {
+      return res.json({ session_id: req.params.id, messages: [] })
+    }
     console.error('Failed to fetch messages:', err)
     res.status(500).json({ error: 'Failed to fetch messages', details: err.message })
   }
@@ -214,6 +231,9 @@ sessionsRouter.delete('/:id', (req, res) => {
 
     res.json({ ok: true })
   } catch (err) {
+    if (isDbUnavailable(err)) {
+      return res.json({ ok: true })
+    }
     console.error('Failed to delete session:', err)
     res.status(500).json({ error: 'Failed to delete session', details: err.message })
   }

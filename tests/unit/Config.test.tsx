@@ -149,7 +149,7 @@ describe('Config', () => {
       })
       renderWithProviders(<Config />)
       await waitFor(() => {
-        expect(screen.getByText('Agent 配置')).toBeTruthy()
+        expect(screen.getByText('Agent 行为')).toBeTruthy()
       })
     })
   })

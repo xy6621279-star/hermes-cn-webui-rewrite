@@ -17,10 +17,36 @@ interface Skill {
   examples?: string[]
 }
 
+interface SkillsResponse {
+  skills?: Array<Partial<Skill>>
+}
+
+function normalizeSkills(payload: Skill[] | SkillsResponse | unknown): Skill[] {
+  const rawSkills = Array.isArray(payload)
+    ? payload
+    : payload && typeof payload === 'object' && Array.isArray((payload as SkillsResponse).skills)
+      ? (payload as SkillsResponse).skills!
+      : []
+
+  return rawSkills
+    .filter((item): item is Partial<Skill> => !!item && typeof item === 'object')
+    .map((item, index) => ({
+      id: item.id || item.name || `skill-${index}`,
+      name: item.name || `未命名技能 ${index + 1}`,
+      description: item.description || '',
+      category: item.category || 'custom',
+      enabled: item.enabled ?? true,
+      triggers: item.triggers,
+      parameters: item.parameters,
+      examples: item.examples,
+    }))
+}
+
 async function fetchSkills(): Promise<Skill[]> {
   const res = await fetch('/api/skills')
   if (!res.ok) throw new Error('Failed to fetch skills')
-  return res.json()
+  const payload = await res.json()
+  return normalizeSkills(payload)
 }
 
 export function Skills() {

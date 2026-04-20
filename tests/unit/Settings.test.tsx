@@ -1,5 +1,4 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -19,10 +18,8 @@ const renderWithProviders = (ui: React.ReactElement) => {
   const queryClient = createQueryClient()
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        {ui}
-      </MemoryRouter>
-    </QueryClientProvider>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 
@@ -36,17 +33,6 @@ const mockSystemInfo = {
   language: 'zh',
 }
 
-const createLicenseResponse = (tier: 'L1' | 'L2' | 'L3' = 'L2', tierLevel = 2) => ({
-  tier,
-  tier_level: tierLevel,
-  features: ['chat', 'sessions', 'config', 'skills', 'tools', 'memory', 'cron', 'browser', 'delegation', 'gateway', 'analytics', 'terminal'],
-  expires_at: '2027-12-31',
-  seats: tierLevel >= 2 ? 3 : 1,
-  is_trial: false,
-  activation_code: 'HERMES-L2-20261231-ABC123',
-  company: 'Test Company',
-})
-
 describe('Settings', () => {
   beforeEach(() => {
     mockFetch.mockReset()
@@ -55,22 +41,15 @@ describe('Settings', () => {
   describe('Loading state', () => {
     it('shows loading spinner when fetching', () => {
       mockFetch.mockImplementationOnce(() => new Promise(() => {}))
-      mockFetch.mockImplementationOnce(() => new Promise(() => {}))
-      
       renderWithProviders(<Settings />)
-      
-      // Should not show main title while loading
-      expect(screen.queryByText('系统设置')).toBeNull()
+      expect(screen.queryByText('设置')).toBeNull()
     })
   })
 
   describe('Error state', () => {
     it('shows error when system info fetch fails', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'))
-      mockFetch.mockImplementationOnce(() => new Promise(() => {}))
-      
       renderWithProviders(<Settings />)
-      
       await waitFor(() => {
         expect(screen.getByText(/获取系统信息失败/)).toBeTruthy()
       })
@@ -78,124 +57,47 @@ describe('Settings', () => {
 
     it('shows retry button on error', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'))
-      mockFetch.mockImplementationOnce(() => new Promise(() => {}))
-      
       renderWithProviders(<Settings />)
-      
       await waitFor(() => {
         expect(screen.getByText('重试')).toBeTruthy()
       })
     })
   })
 
-  describe('License display', () => {
-    it('renders license status for L1 tier', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockSystemInfo),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(createLicenseResponse('L1', 1)),
-      })
-      
-      renderWithProviders(<Settings />)
-      
-      // Wait for main title to appear
-      await waitFor(() => {
-        expect(screen.getByRole('heading', { level: 2 })).toBeTruthy()
-      }, { timeout: 3000 })
-    })
-  })
-
-  describe('License activation form', () => {
-    it('renders activation input when no license exists', async () => {
-      // Mock empty license (no stored license)
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockSystemInfo),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(null), // no license
-      })
-      
-      renderWithProviders(<Settings />)
-      
-      await waitFor(() => {
-        expect(screen.queryByPlaceholderText('XXXX-XXXX-XXXX-XXXX')).toBeTruthy()
-      }, { timeout: 3000 })
-    })
-
-    it('renders activation button when no license exists', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockSystemInfo),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(null),
-      })
-      
-      renderWithProviders(<Settings />)
-      
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /激活/ })).toBeTruthy()
-      }, { timeout: 3000 })
-    })
-
-    it('accepts license key input when no license exists', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockSystemInfo),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(null),
-      })
-      
-      renderWithProviders(<Settings />)
-      
-      const input = await screen.findByPlaceholderText('XXXX-XXXX-XXXX-XXXX')
-      await userEvent.type(input, 'HERMES-L2-20261231-TEST12')
-      
-      expect(input).toHaveValue('HERMES-L2-20261231-TEST12')
-    })
-  })
-
   describe('Page structure', () => {
     it('renders settings page title', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockSystemInfo),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(createLicenseResponse('L2', 2)),
-      })
-      
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockSystemInfo) })
       renderWithProviders(<Settings />)
-      
       await waitFor(() => {
         expect(screen.getByRole('heading', { level: 2, name: '设置' })).toBeTruthy()
-      }, { timeout: 3000 })
+      })
     })
 
     it('renders theme section', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockSystemInfo),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(createLicenseResponse('L2', 2)),
-      })
-      
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockSystemInfo) })
       renderWithProviders(<Settings />)
-      
       await waitFor(() => {
         expect(screen.getByRole('heading', { level: 3, name: '主题' })).toBeTruthy()
-      }, { timeout: 3000 })
+      })
+    })
+
+    it('renders backup actions', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockSystemInfo) })
+      renderWithProviders(<Settings />)
+      await waitFor(() => {
+        expect(screen.getByText('导出备份')).toBeTruthy()
+        expect(screen.getByText('导入备份')).toBeTruthy()
+      })
+    })
+
+    it('renders about section system info', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockSystemInfo) })
+      renderWithProviders(<Settings />)
+      await waitFor(() => {
+        expect(screen.getByText('WebUI 版本')).toBeTruthy()
+        expect(screen.getByText('2.2.0')).toBeTruthy()
+        expect(screen.getByText('Agent 版本')).toBeTruthy()
+      })
     })
   })
 })

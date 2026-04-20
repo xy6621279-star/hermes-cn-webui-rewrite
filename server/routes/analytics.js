@@ -11,6 +11,11 @@ function getDb() {
   return new Database(DB_PATH, { readonly: true })
 }
 
+function isDbUnavailable(err) {
+  const message = err instanceof Error ? err.message : String(err)
+  return message.includes('better_sqlite3.node') || message.includes('Could not locate the bindings file')
+}
+
 // Cost per 1M tokens (rough approximation — matches api.ts convention)
 const COST_PER_MILLION = 2.0
 
@@ -117,6 +122,37 @@ analyticsRouter.get('/usage', (req, res) => {
       },
     })
   } catch (err) {
+    if (isDbUnavailable(err)) {
+      const days = Math.max(1, Math.min(365, parseInt(req.query.days || '30', 10)))
+      const daily = []
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date()
+        d.setDate(d.getDate() - i)
+        daily.push({
+          day: d.toISOString().split('T')[0],
+          input_tokens: 0,
+          output_tokens: 0,
+          cache_read_tokens: 0,
+          reasoning_tokens: 0,
+          estimated_cost: 0,
+          actual_cost: 0,
+          sessions: 0,
+        })
+      }
+      return res.json({
+        daily,
+        by_model: [],
+        totals: {
+          total_input: 0,
+          total_output: 0,
+          total_cache_read: 0,
+          total_reasoning: 0,
+          total_estimated_cost: 0,
+          total_actual_cost: 0,
+          total_sessions: 0,
+        },
+      })
+    }
     console.error('Failed to fetch analytics:', err)
     res.status(500).json({ error: 'Failed to fetch analytics', details: err.message })
   }

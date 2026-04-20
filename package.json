@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:server": "node server/index.js",
+    "dev:server": "npm --prefix server run dev",
     "dev:check": "node scripts/wait-for-server.js",
     "dev:start": "concurrently --kill-others-on-fail -n \"frontend,backend\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev\" \"npm run dev:server\" && npm run dev:check",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",

@@ -664,6 +664,14 @@ export function Gateway() {
           ) : (
             <>
               <button
+                onClick={() => stopMutation.mutate()}
+                disabled={stopMutation.isPending}
+                className="flex items-center gap-1.5 rounded bg-red-500/20 px-3 py-1.5 text-sm text-red-500 hover:bg-red-500/30 disabled:opacity-50"
+              >
+                <Square className="h-3.5 w-3.5" />
+                {stopMutation.isPending ? '停止中...' : '停止'}
+              </button>
+              <button
                 onClick={() => restartMutation.mutate()}
                 disabled={restartMutation.isPending}
                 className="flex items-center gap-1.5 rounded bg-blue-500/20 px-3 py-1.5 text-sm text-blue-500 hover:bg-blue-500/30 disabled:opacity-50"
